@@ -1,0 +1,38 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Environment / secrets
+.env
+*.env
+!.env.example
+
+# Node / frontend
+node_modules/
+frontend/dist/
+frontend/.vite/
+npm-debug.log*
+
+# Builds / misc
+dist/
+build/
+*.log
+.DS_Store
+Thumbs.db
+
+# Local data
+data_sources/*.tmp
+
+# Capstone document (project reference only, not part of the codebase)
+/IsaacNjuguna_169647_EOlang*.docx
+
+# IDE
+.idea/
+.vscode/
