@@ -139,7 +139,7 @@ class KnowledgeFragment(Base):
     )
     chunk_index: Mapped[int] = mapped_column(Integer)
     content: Mapped[str] = mapped_column(Text)
-    embedding: Mapped[list[float]] = mapped_column(Vector(512))
+    embedding: Mapped[list[float] | None] = mapped_column(Vector(512), nullable=True)  # None when ML stack not installed
     source_url: Mapped[str | None] = mapped_column(String(1024), nullable=True)
     topic: Mapped[str | None] = mapped_column(String(128), nullable=True)
     last_fetched: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

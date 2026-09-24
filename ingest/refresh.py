@@ -1,21 +1,51 @@
-"""Stale-data refresh lands in Phase 2.
+"""Stale-data refresh: content-hash diff between stored and newly fetched sources.
 
-Strategy (from the plan):
-  - Re-fetch each known source, compute its SHA-256 content hash, and compare
-    against KnowledgeDocument.content_hash.
-  - Only changed sources are re-chunked / re-embedded (delete fragments for the
-    source, reinsert), leaving unchanged sources untouched.
-  - Local PDFs refresh manually by re-running this script after a file update.
+Only sources whose raw content changed are re-chunked / re-embedded; unchanged
+sources are left untouched. Local PDFs refresh by simply re-running this script
+after a file update (there is no watcher or cron yet).
+
+Examples
+--------
+    python -m ingest.refresh --store sqlite
+    python -m ingest.refresh --store pg --embed
 """
 
 import argparse
+import asyncio
+
+from ingest.embedder import Embedder
+from ingest.pipeline import ingest_sources
+from ingest.sources import discover_all
+from ingest.store import resolve_store
 
 
-def refresh() -> None:
-    raise NotImplementedError("Phase 2: hash-based refresh")
+async def refresh(options: argparse.Namespace) -> int:
+    sources = discover_all(options.source)
+    if not sources:
+        print("No sources found.")
+        return 1
+
+    store = await resolve_store(options.store)
+    embedder = Embedder() if options.embed else None
+
+    try:
+        report = await ingest_sources(
+            sources, store, embedder=embedder, force=options.force, embed=options.embed
+        )
+        print(f"Refresh complete. {report.summary()}")
+        return 1 if report.failed else 0
+    finally:
+        await store.close()
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description="Refresh changed knowledge sources")
+    parser.add_argument("--store", choices=["auto", "pg", "sqlite"], default="auto")
+    parser.add_argument("--embed", action="store_true")
+    parser.add_argument("--force", action="store_true")
+    parser.add_argument("--source", action="append", help="Extra source URL or file path")
+    raise SystemExit(asyncio.run(refresh(parser.parse_args())))
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Refresh changed knowledge sources")
-    args = parser.parse_args()
-    refresh()
+    main()

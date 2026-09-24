@@ -1,3 +1,4 @@
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase
 
@@ -19,12 +20,14 @@ async def get_db():
 
 
 async def init_models() -> None:
-    """Create tables for the prototype. Run once against a fresh Neon DB.
+    """Create schema / tables against Postgres (used by `ingest/run.py --store pg`).
 
-    Requires 'CREATE EXTENSION IF NOT EXISTS vector;' executed beforehand
-    (enable it once in Neon: Settings -> Extension -> vector).
+    Runs 'CREATE EXTENSION IF NOT EXISTS vector;' automatically so a manual
+    Neon step is not required. Remote-only: the local SqliteStore stand-in
+    builds its own schema.
     """
     import app.models  # noqa: F401  (register models on Base)
 
     async with engine.begin() as conn:
+        await conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
         await conn.run_sync(Base.metadata.create_all)

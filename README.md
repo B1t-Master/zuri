@@ -23,9 +23,13 @@ Groq/DeepSeek.
    pip install -r requirements.txt
    uvicorn app.main:app --reload
    ```
-3. Ingest data (PDFs in `data_sources/` + KQ FAQ URLs):
+3. Ingest data (PDFs in `data_sources/` + KQ FAQ URLs). By default the CLI writes
+   to a local `SqliteStore` (`.zuri_store.sqlite`) so the pipeline runs without
+   the ML stack or a network route to Neon:
    ```bash
-   python -m ingest.run
+   python -m ingest.run                      # local sqlite, no embeddings
+   python -m ingest.run --embed              # add CPU embeddings (torch + sentence-transformers required)
+   python -m ingest.run --store pg --embed   # Neon pgvector (creates schema; needs outbound :5432)
    ```
 4. Frontend:
    ```bash
@@ -63,11 +67,16 @@ Sources: SAA Conditions of Carriage, KQ self-rebooking FAQ (PDFs), and scraped
 KQ FAQ web pages. When a source changes, re-run:
 
 ```bash
-python -m ingest.refresh
+python -m ingest.refresh        # same --store / --embed switches as ingest.run
 ```
 
 Refresh uses content hashing — only chunks whose source changed are
 re-chunked/re-embedded; unchanged sources are left untouched.
+
+**Store backends:** `--store auto` picks the Neon Postgres/pgvector store when
+`DATABASE_URL` is set and reachable, otherwise falls back to a local `SqliteStore`
+for offline/restricted-network development. Vectors are stored SQLite-side as
+JSON; in-process cosine search is used during retrieval for the fallback.
 
 ## Cost notes
 
