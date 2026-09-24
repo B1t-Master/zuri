@@ -17,6 +17,13 @@ class Store(ABC):
         chunks: list[str], embeddings: list[list[float] | None] | None, source_url: str | None,
     ) -> str: ...
 
+    async def ensure_schema(self) -> None:
+        """Create/verify tables & extension. No-op by default (SqliteStore
+        builds its schema in connect())."""
+
+    async def reset(self) -> None:
+        """Drop stored knowledge content (not part of default flow; --reset flag)."""
+
     @abstractmethod
     async def close(self) -> None: ...
 
@@ -48,6 +55,20 @@ class PgVectorStore(Store):
                 )
             )
             return result.scalar_one_or_none()
+
+    async def ensure_schema(self) -> None:
+        from app.db import init_models
+
+        await init_models()
+
+    async def reset(self) -> None:
+        """Drop all knowledge content (documents + fragments only)."""
+        from sqlalchemy import delete
+
+        async with self._SessionLocal() as session:
+            await session.execute(delete(self._KnowledgeDocument))
+            await session.execute(delete(self._KnowledgeFragment))
+            await session.commit()
 
     async def replace_source(self, *, source_key, title, topic, doc_type, content_hash,
                              chunks, embeddings, source_url) -> str:
@@ -181,6 +202,10 @@ class SqliteStore(Store):
             )
         await self._db.commit()
         return status
+
+    async def reset(self) -> None:
+        await self._db.execute("DELETE FROM documents")
+        await self._db.commit()
 
     async def close(self) -> None:
         if self._db is not None:

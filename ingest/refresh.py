@@ -29,6 +29,9 @@ async def refresh(options: argparse.Namespace) -> int:
     embedder = Embedder() if options.embed else None
 
     try:
+        await store.ensure_schema()
+        if options.reset:
+            await store.reset()
         report = await ingest_sources(
             sources, store, embedder=embedder, force=options.force, embed=options.embed
         )
@@ -43,6 +46,7 @@ def main() -> None:
     parser.add_argument("--store", choices=["auto", "pg", "sqlite"], default="auto")
     parser.add_argument("--embed", action="store_true")
     parser.add_argument("--force", action="store_true")
+    parser.add_argument("--reset", action="store_true")
     parser.add_argument("--source", action="append", help="Extra source URL or file path")
     raise SystemExit(asyncio.run(refresh(parser.parse_args())))
 

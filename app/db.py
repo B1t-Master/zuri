@@ -31,3 +31,8 @@ async def init_models() -> None:
     async with engine.begin() as conn:
         await conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
         await conn.run_sync(Base.metadata.create_all)
+        # Schema drift guard: tables created before Phase 2 (or hand-made in the
+        # Neon SQL editor) made knowledge_fragments.embedding NOT NULL. Embeddings
+        # are optional until the ML stack is installed, so drop the constraint
+        # (no-op when the column is already nullable).
+        await conn.execute(text("ALTER TABLE knowledge_fragments ALTER COLUMN embedding DROP NOT NULL"))

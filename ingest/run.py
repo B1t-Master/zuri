@@ -34,6 +34,9 @@ async def run(options: argparse.Namespace) -> int:
     embedder = Embedder() if options.embed else None
 
     try:
+        await store.ensure_schema()
+        if options.reset:
+            await store.reset()
         report = await ingest_sources(
             sources, store, embedder=embedder, force=options.force, embed=options.embed
         )
@@ -60,6 +63,11 @@ def main() -> None:
         "--force",
         action="store_true",
         help="Re-ingest every source even when its content hash is unchanged",
+    )
+    parser.add_argument(
+        "--reset",
+        action="store_true",
+        help="Delete all knowledge documents/fragments before ingesting",
     )
     parser.add_argument(
         "--source",
