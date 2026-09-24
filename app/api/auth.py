@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
 from app.db import get_db
-from app.deps import get_current_agent
+from app.deps import get_current_agent, get_current_passenger
 from app.models import Agent, Passenger
 from app.schemas import (
     AnonymousSession,
